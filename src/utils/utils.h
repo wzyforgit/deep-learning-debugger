@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <QImage>
+#include <opencv2/opencv.hpp>
+
 //提供毫秒级时间计算
 double getCurrentTime();
 
@@ -15,3 +18,6 @@ void runWithTime(Func &&f, double *timeUsed)
     f();
     *timeUsed = getCurrentTime() - start;
 }
+
+//cv::Mat -> QImage
+QImage cvMat2QImage(const cv::Mat &mat);

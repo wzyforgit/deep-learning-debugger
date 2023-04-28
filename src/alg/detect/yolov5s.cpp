@@ -9,6 +9,7 @@
 
 #include <QFile>
 #include <QtDebug>
+#include <QPainter>
 
 #include <cstring>
 
@@ -16,6 +17,7 @@ Yolov5s::Yolov5s()
 {
     //1.加载模型
     net = new ncnn::Net;
+    //net->opt.use_vulkan_compute = true; //vulkan推理存在问题，暂时屏蔽
     net->load_param("/home/fuko/桌面/AI/Detect/deploy/model/best.param");
     net->load_model("/home/fuko/桌面/AI/Detect/deploy/model/best.bin");
 
@@ -135,7 +137,31 @@ QList<Yolov5s::DetectResult> Yolov5s::nms(const QList<DetectResult> &originResul
 
 void Yolov5s::analyze()
 {
-    ncnn::Mat input = ncnn::Mat::from_pixels(imageCache.bits(), ncnn::Mat::PIXEL_RGB, imageCache.width(), imageCache.height(), imageCache.bytesPerLine());
+    //检测框还原至原图部分改编自：https://github.com/Tencent/ncnn/discussions/4541
+
+    //padding
+    QImage imageIn(640, 640, QImage::Format_RGB888);
+    imageIn.fill(0);
+    float scale = 1.0f;
+    QImage scaledImage;
+
+    QPainter painter(&imageIn);
+    if(imageCache.width() > imageCache.height()) {
+        scaledImage = imageCache.scaledToWidth(640, Qt::SmoothTransformation);
+        painter.drawImage(QPointF(0, (640 - scaledImage.height()) / 2), scaledImage);
+        scale = 640.0f / imageCache.width();
+    } else {
+        scaledImage = imageCache.scaledToHeight(640, Qt::SmoothTransformation);
+        painter.drawImage(QPointF((640 - scaledImage.width()) / 2, 0), scaledImage);
+        scale = 640.0f / imageCache.height();
+    }
+    painter.end();
+
+    int wpad = 640 - scaledImage.width();
+    int hpad = 640 - scaledImage.height();
+
+    //inference
+    ncnn::Mat input = ncnn::Mat::from_pixels(imageIn.bits(), ncnn::Mat::PIXEL_RGB, imageIn.width(), imageIn.height(), imageIn.bytesPerLine());
 
     float normValues[] = {1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0};
     input.substract_mean_normalize(nullptr, normValues);
@@ -146,7 +172,28 @@ void Yolov5s::analyze()
     ncnn::Mat out;
     extractor.extract("out0", out);
 
+    //post-process
     auto originDetectResults = generateDetectResult(out, 0.2, 0.3);
     auto detectResult = nms(originDetectResults, out.w - 5, 0.5);
+
+    for(auto &eachResult : detectResult) {
+        // adjust offset to original unpadded
+        float x0 = (eachResult.bbox.x() - (wpad / 2)) / scale;
+        float y0 = (eachResult.bbox.y() - (hpad / 2)) / scale;
+        float x1 = (eachResult.bbox.x() + eachResult.bbox.width() - (wpad / 2)) / scale;
+        float y1 = (eachResult.bbox.y() + eachResult.bbox.height() - (hpad / 2)) / scale;
+
+        // clip
+        x0 = std::max(std::min(x0, (float)(imageCache.width()  - 1)), 0.f);
+        y0 = std::max(std::min(y0, (float)(imageCache.height() - 1)), 0.f);
+        x1 = std::max(std::min(x1, (float)(imageCache.width()  - 1)), 0.f);
+        y1 = std::max(std::min(y1, (float)(imageCache.height() - 1)), 0.f);
+
+        eachResult.bbox.setX(x0);
+        eachResult.bbox.setY(y0);
+        eachResult.bbox.setWidth(x1 - x0);
+        eachResult.bbox.setHeight(y1 - y0);
+    }
+
     lastResult = detectResult;
 }

@@ -8,7 +8,10 @@
 
 class ImageView;
 class QTextEdit;
+class CameraControl;
 class Yolov5s;
+class QTimer;
+class QLabel;
 
 class DetectPage : public QWidget
 {
@@ -25,6 +28,7 @@ public:
 
 private:
     void initUI();
+    void openImage(const QImage &image, bool useFps);
     void openImage(const QString &path);
     void addMessage(const QString &msg);
 
@@ -32,4 +36,7 @@ private:
     ImageView *dstView;
     QTextEdit *msgBox;
     Yolov5s *yolov5s;
+    CameraControl *camera;
+    QTimer *cameraFlushTimer;
+    QLabel *fpsLabel;
 };

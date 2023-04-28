@@ -6,15 +6,20 @@
 #include "ui/subwidget/imageview.h"
 #include "alg/detect/yolov5s.h"
 #include "utils/utils.h"
+#include "utils/cameracontrol.h"
 
 #include <QGroupBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QStackedWidget>
+#include <QSpinBox>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTabBar>
 #include <QFileDialog>
 #include <QTextEdit>
+#include <QLabel>
+#include <QTimer>
 
 DetectPage::DetectPage(QWidget *parent)
     : QWidget(parent)
@@ -22,8 +27,19 @@ DetectPage::DetectPage(QWidget *parent)
     , dstView(new ImageView)
     , msgBox(new QTextEdit)
     , yolov5s(new Yolov5s)
+    , camera(new CameraControl)
+    , cameraFlushTimer(new QTimer)
 {
     initUI();
+
+    connect(cameraFlushTimer, &QTimer::timeout, [this](){
+        if(!camera->isWorking())
+        {
+            cameraFlushTimer->stop();
+            return;
+        }
+        openImage(camera->lastImage(), true);
+    });
 }
 
 void DetectPage::initUI()
@@ -42,7 +58,9 @@ void DetectPage::initUI()
     //操作面板
     auto panelGroup = new QGroupBox(tr("操作面板"));
     auto panelLayer = new QVBoxLayout;
+    auto panelSwitchWidget = new QStackedWidget;
 
+    //图片控制面板
     auto pathEdit = new QLineEdit;
     auto pathFindButton = new QPushButton("...");
     auto openButton = new QPushButton(tr("打开图片"));
@@ -68,12 +86,65 @@ void DetectPage::initUI()
     pathEnterLayer->addWidget(pathFindButton);
     pathEnterLayer->addWidget(openButton);
 
+    auto pathEnterWidget = new QWidget;
+    pathEnterWidget->setLayout(pathEnterLayer);
+    panelSwitchWidget->addWidget(pathEnterWidget);
+
+    //视频控制面板
+    auto videoChooseEdit = new QSpinBox;
+    auto videoStatusButton = new QPushButton(tr("打开"));
+    fpsLabel = new QLabel("0 fps");
+
+    videoChooseEdit->setMinimum(0);
+
+    connect(videoStatusButton, &QPushButton::clicked, [this, videoStatusButton, videoChooseEdit](){
+        if(camera->isWorking())
+        {
+            videoStatusButton->setText(tr("打开"));
+            if(camera->closeCamera())
+            {
+                addMessage(tr("摄像头已关闭"));
+            }
+            else
+            {
+                addMessage(tr("摄像头关闭失败"));
+            }
+        }
+        else
+        {
+            videoStatusButton->setText(tr("关闭"));
+            camera->setCaptureInterval(50);
+
+            if(camera->openCamera(videoChooseEdit->value()))
+            {
+                addMessage(tr("摄像头已启动"));
+                cameraFlushTimer->start(100);
+            }
+            else
+            {
+                addMessage(tr("摄像头启动失败"));
+            }
+        }
+    });
+
+    auto videoControlLayer = new QHBoxLayout;
+    videoControlLayer->addWidget(videoChooseEdit);
+    videoControlLayer->addWidget(videoStatusButton);
+    videoControlLayer->addWidget(fpsLabel, 0, Qt::AlignRight);
+
+    auto videoControlWidget = new QWidget;
+    videoControlWidget->setLayout(videoControlLayer);
+    panelSwitchWidget->addWidget(videoControlWidget);
+
+    //组装tab
     auto viewChangeTab = new QTabBar;
     viewChangeTab->addTab(tr("图片测试"));
     viewChangeTab->addTab(tr("视频测试"));
 
+    connect(viewChangeTab, &QTabBar::currentChanged, panelSwitchWidget, &QStackedWidget::setCurrentIndex);
+
     panelLayer->addWidget(viewChangeTab);
-    panelLayer->addLayout(pathEnterLayer);
+    panelLayer->addWidget(panelSwitchWidget, 0, Qt::AlignTop);
     panelLayer->addWidget(msgBox);
     panelGroup->setLayout(panelLayer);
 
@@ -98,27 +169,25 @@ void DetectPage::addMessage(const QString &msg)
 
 void DetectPage::openImage(const QString &path)
 {
-    //TODO：需要改良yolov5s类的行为
-    //TODO：vulkan推理结果不正确
+    openImage(QImage(path), false);
+}
 
-    auto srcImage = QImage(path);
+void DetectPage::openImage(const QImage &image, bool useFps)
+{
+    //TODO：vulkan推理结果不正确
+    //PATH：先对齐官方demo，然后再测试vulkan
+    //priority：yolo行为改良->GUI->vulkan算法校正
+
+    if(image.isNull())
+    {
+        return;
+    }
+
+    auto srcImage = image;
     srcView->setImage(srcImage);
 
-    QImage imageIn(640, 640, QImage::Format_RGB888);
-    imageIn.fill(0);
-
-    QPainter painter(&imageIn);
-    if(srcImage.width() > srcImage.height()) {
-        srcImage = srcImage.scaledToWidth(640, Qt::SmoothTransformation);
-        painter.drawImage(QPointF(0, (640 - srcImage.height()) / 2), srcImage);
-    } else {
-        srcImage = srcImage.scaledToHeight(640, Qt::SmoothTransformation);
-        painter.drawImage(QPointF((640 - srcImage.width()) / 2, 0), srcImage);
-    }
-    painter.end();
-
     //1.执行计算
-    yolov5s->setImage(imageIn);
+    yolov5s->setImage(srcImage);
 
     double timeUsed = 0;
     runWithTime([this](){
@@ -128,9 +197,10 @@ void DetectPage::openImage(const QString &path)
     auto result = yolov5s->result();
 
     //2.绘制结果
-    QImage imageOut(imageIn);
-    painter.begin(&imageOut);
-    for(auto &eachResult : result) {
+    QImage imageOut(srcImage);
+    QPainter painter(&imageOut);
+    for(auto &eachResult : result)
+    {
         painter.setPen(QPen(Qt::red, 2));
         painter.drawRect(eachResult.bbox);
         painter.drawText(eachResult.bbox.x() + 5, eachResult.bbox.y() + 14, eachResult.clsStr);
@@ -138,5 +208,13 @@ void DetectPage::openImage(const QString &path)
     painter.end();
     dstView->setImage(imageOut);
 
-    addMessage(tr("本轮分析用时：%1ms").arg(timeUsed));
+    if(!useFps)
+    {
+        addMessage(tr("本轮分析用时：%1ms").arg(timeUsed));
+    }
+    else
+    {
+        double fps = 1000.0 / timeUsed;
+        fpsLabel->setText(QString::number(fps, 'g', 4) + " fps");
+    }
 }

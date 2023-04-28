@@ -14,3 +14,10 @@ double getCurrentTime()
 
     return tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
 }
+
+QImage cvMat2QImage(const cv::Mat &mat)
+{
+    //只处理这两种情况
+    QImage::Format imageFormat = mat.type() == CV_8UC4 ? QImage::Format_RGB32 : QImage::Format_RGB888;
+    return QImage(mat.data, mat.cols, mat.rows, mat.step, imageFormat).rgbSwapped();
+}
