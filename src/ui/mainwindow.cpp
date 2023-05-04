@@ -4,6 +4,7 @@
 
 #include "mainwindow.h"
 #include "ui/subpage/detectpage.h"
+#include "ui/subpage/audiopage.h"
 
 #include <QTabBar>
 #include <QStackedWidget>
@@ -14,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
     , tabBar(new QTabBar)
     , pageWidget(new QStackedWidget)
     , detectPage(new DetectPage)
+    , audioPage(new AudioPage)
 {
     auto allLayer = new QVBoxLayout;
     allLayer->addWidget(tabBar);
@@ -33,4 +35,8 @@ void MainWindow::initTab()
     //目标检测
     tabBar->addTab(detectPage->pageName());
     pageWidget->addWidget(detectPage);
+
+    //音频识别
+    tabBar->addTab(audioPage->pageName());
+    pageWidget->addWidget(audioPage);
 }

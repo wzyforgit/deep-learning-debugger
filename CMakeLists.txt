@@ -11,7 +11,7 @@ find_package(PkgConfig REQUIRED)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-set(QtModule Core Gui Widgets)
+set(QtModule Core Gui Widgets Multimedia Charts)
 find_package(Qt5 REQUIRED ${QtModule})
 
 #for ncnn
@@ -41,13 +41,13 @@ aux_source_directory(./src/utils allSource)
 add_executable(${BIN_NAME} ${allSource})
 
 target_include_directories(${BIN_NAME} PUBLIC
-    Qt5::Core Qt5::Gui Qt5::Widgets
+    Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Multimedia Qt5::Charts
     ${PROJECT_INCLUDE}
     ${InferenceEngine_INCLUDE_DIRS}
 )
 
 target_link_libraries(${BIN_NAME} PRIVATE
-    Qt5::Core Qt5::Gui Qt5::Widgets
+    Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Multimedia Qt5::Charts
     ${TARGET_LIBS}
     ${InferenceEngine_LIBRARIES}
     PkgConfig::OPENCV

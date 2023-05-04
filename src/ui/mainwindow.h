@@ -12,6 +12,7 @@ class QStackedWidget;
 
 //tab页面
 class DetectPage;
+class AudioPage;
 
 class MainWindow : public QMainWindow
 {
@@ -28,4 +29,5 @@ private:
     QStackedWidget *pageWidget;
 
     DetectPage *detectPage;
+    AudioPage *audioPage;
 };

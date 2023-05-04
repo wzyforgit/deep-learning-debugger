@@ -100,9 +100,9 @@ void DetectPage::initUI()
     connect(videoStatusButton, &QPushButton::clicked, [this, videoStatusButton, videoChooseEdit](){
         if(camera->isWorking())
         {
-            videoStatusButton->setText(tr("打开"));
             if(camera->closeCamera())
             {
+                videoStatusButton->setText(tr("打开"));
                 addMessage(tr("摄像头已关闭"));
             }
             else
@@ -112,12 +112,11 @@ void DetectPage::initUI()
         }
         else
         {
-            videoStatusButton->setText(tr("关闭"));
             camera->setCaptureInterval(50);
-
             if(camera->openCamera(videoChooseEdit->value()))
             {
                 addMessage(tr("摄像头已启动"));
+                videoStatusButton->setText(tr("关闭"));
                 cameraFlushTimer->start(100);
             }
             else
