@@ -173,10 +173,6 @@ void DetectPage::openImage(const QString &path)
 
 void DetectPage::openImage(const QImage &image, bool useFps)
 {
-    //TODO：vulkan推理结果不正确
-    //PATH：先对齐官方demo，然后再测试vulkan
-    //priority：yolo行为改良->GUI->vulkan算法校正
-
     if(image.isNull())
     {
         return;

@@ -17,7 +17,7 @@ Yolov5s::Yolov5s()
 {
     //1.加载模型
     net = new ncnn::Net;
-    //net->opt.use_vulkan_compute = true; //vulkan推理存在问题，暂时屏蔽
+    net->opt.use_vulkan_compute = true;
     net->load_param("/home/fuko/桌面/AI/Detect/deploy/model/best.param");
     net->load_model("/home/fuko/桌面/AI/Detect/deploy/model/best.bin");
 
