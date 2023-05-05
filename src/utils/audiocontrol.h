@@ -5,6 +5,7 @@
 #pragma once
 
 #include <QObject>
+#include <QAudioFormat>
 
 class QAudioInput;
 class AudioControlDatas;
@@ -42,6 +43,9 @@ public:
 
     //设备是否正在工作
     bool isWorking() const;
+
+    //当前设置的format
+    QAudioFormat format() const;
 
 signals:
     //数据就绪

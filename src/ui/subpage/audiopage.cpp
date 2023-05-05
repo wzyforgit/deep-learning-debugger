@@ -103,6 +103,7 @@ void AudioPage::initUI()
     panelGroup->setLayout(panelLayer);
 
     waveView = new AudioWaveView;
+    connect(audio, &AudioControl::dataReady, waveView, &AudioWaveView::setData);
 
     auto allLayer = new QHBoxLayout;
     allLayer->addWidget(panelGroup, 1);
@@ -188,6 +189,7 @@ void AudioPage::switchAudioDevice()
         {
             addMessage(tr("录音设备已打开"));
             openAudioButton->setText(tr("关闭录音设备"));
+            waveView->setAudioParam(audio->format());
         }
         else
         {

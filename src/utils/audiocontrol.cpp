@@ -25,6 +25,9 @@ public:
     QList<QAudioFormat::SampleType> sampleTypes;
     QList<int> sampleSizes;
     QList<QAudioFormat::Endian> endians;
+
+    //已设置的数据
+    QAudioFormat format;
 };
 
 class AudioControlDataDevice : public QIODevice
@@ -228,9 +231,10 @@ bool AudioControl::openAudio(const QList<int> &paramIndexes)
     {
         return false;
     }
+    data->format = format;
 
     audioInput = new QAudioInput(data->info, format);
-    audioInput->setBufferSize(format.sampleRate() / 2 * format.sampleSize());
+    audioInput->setBufferSize(1024 * format.sampleSize());
     dataDevice->open(QIODevice::WriteOnly);
     audioInput->start(dataDevice);
 
@@ -253,6 +257,11 @@ bool AudioControl::closeAudio()
 bool AudioControl::isWorking() const
 {
     return audioInput != nullptr;
+}
+
+QAudioFormat AudioControl::format() const
+{
+    return data->format;
 }
 
 #include "audiocontrol.moc"
