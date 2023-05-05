@@ -8,7 +8,9 @@
 
 class QComboBox;
 class QTextEdit;
+class QPushButton;
 class AudioWaveView;
+class AudioControl;
 
 class AudioPage : public QWidget
 {
@@ -25,16 +27,23 @@ signals:
 
 private:
     void initUI();
-    void openAudioDevice(bool status); //true 打开，false 关闭
+    void updateDeviceChooseBox();
+    void updateDeviceParamBox(int index);
+
+    void addMessage(const QString &message);
+    void switchAudioDevice(); //true 打开，false 关闭
 
     QComboBox *deviceChooseBox;
     QComboBox *codecChooseBox;
-    QComboBox *freqChooseBox;
+    QComboBox *sampleRatesChooseBox;
     QComboBox *channelCountChooseBox;
     QComboBox *sampleTypeChooseBox;
     QComboBox *sampleSizeChooseBox;
     QComboBox *endiannessChooseBox;
 
+    QPushButton *openAudioButton;
+
     QTextEdit *msgBox;
     AudioWaveView *waveView;
+    AudioControl *audio;
 };
