@@ -151,7 +151,7 @@ QVector<QPointF> AudioWaveView::generateSpecPoints(int pointCount, const QVector
     {
         //感觉原始数据好看一些，需要再研究
         //points.push_back(QPointF(i * res, 20 * std::log10(std::fabs(data.at(i))))); //分贝
-        points.push_back(QPointF(i * res, data.at(i))); //原始
+        points.push_back(QPointF(i * res, std::fabs(data.at(i)))); //原始
     }
 
     return points;
@@ -160,6 +160,13 @@ QVector<QPointF> AudioWaveView::generateSpecPoints(int pointCount, const QVector
 void AudioWaveView::setData(const QByteArray &data)
 {
     //先只处理8bits,unsigned
+
+    //TODO：其他数据类型处理：16bit,float,实现数据拼接代码
+    //TODO：实现升采样和降采样，即能够变换到指定的采样率
+    //TODO：实现PCM音频播放功能
+    //TODO：接入语音识别算法sherpa-ncnn
+    //TODO：实现识别结果实时显示
+    //Priority：音频播放->升采样降采样->数据拼接->语音识别算法->识别结果显示
 
     //1.波形图
 
@@ -186,17 +193,13 @@ void AudioWaveView::setData(const QByteArray &data)
         });
 
         //2.1.执行FFT
-        cv::Mat_<double> audioData(1, fftInput.size(), fftInput.data());
-        cv::Mat_<double> audioFFT;
+        cv::Mat_<qreal> audioData(1, fftInput.size(), fftInput.data());
+        cv::Mat_<qreal> audioFFT;
         cv::dft(audioData, audioFFT);
 
         //2.2.导出数据
-        QVector<qreal> fftData;
-        auto startPoint = audioFFT.ptr<double>(0);
-        for(int i = 0;i != audioFFT.cols;++i)
-        {
-            fftData.push_back(*(startPoint + i));
-        }
+        QVector<qreal> fftData(audioFFT.cols);
+        std::memcpy(fftData.data(), audioFFT.ptr<qreal>(0), audioFFT.cols * sizeof(qreal));
         auto specPoints = generateSpecPoints(specPointCount, fftData);
 
         //2.3.数据刷入图表

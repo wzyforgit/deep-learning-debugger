@@ -24,7 +24,9 @@ public:
     };
 
     explicit Yolov5s();
+    ~Yolov5s();
 
+    void init();
     void setImage(const QImage &image);
     void analyze();
     QList<DetectResult> result();
@@ -36,6 +38,6 @@ private:
 
     QImage imageCache;
     QList<DetectResult> lastResult;
-    ncnn::Net *net;
+    ncnn::Net *net = nullptr;
     QStringList dict;
 };

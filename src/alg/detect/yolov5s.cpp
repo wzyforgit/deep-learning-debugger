@@ -15,6 +15,15 @@
 
 Yolov5s::Yolov5s()
 {
+}
+
+Yolov5s::~Yolov5s()
+{
+    delete net;
+}
+
+void Yolov5s::init()
+{
     //1.加载模型
     net = new ncnn::Net;
     net->opt.use_vulkan_compute = true;
@@ -137,6 +146,11 @@ QList<Yolov5s::DetectResult> Yolov5s::nms(const QList<DetectResult> &originResul
 
 void Yolov5s::analyze()
 {
+    if(net == nullptr)
+    {
+        init();
+    }
+
     //检测框还原至原图部分改编自：https://github.com/Tencent/ncnn/discussions/4541
 
     //padding

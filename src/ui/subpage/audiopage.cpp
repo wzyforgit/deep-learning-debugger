@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QTextEdit>
 #include <QPushButton>
+#include <QFileDialog>
 #include <QLabel>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -16,12 +17,14 @@
 #include <QGroupBox>
 #include <QFontMetrics>
 #include <QAbstractItemView>
+#include <QtDebug>
 
 //基本逻辑：deviceChooseBox更新一次刷新一次下方控件
 
 AudioPage::AudioPage(QWidget *parent)
     : QWidget(parent)
     , audio(new AudioControl(this))
+    , saveFile(new QFile)
 {
     initUI();
     updateDeviceChooseBox();
@@ -72,14 +75,13 @@ void AudioPage::initUI()
     audioInputLayer->addWidget(endiannessChooseBox, 6, 1);
 
     openAudioButton = new QPushButton(tr("打开录音设备"));
-    auto saveAudioToFile = new QPushButton(tr("保存至文件"));
-    auto flushDeviceButton = new QPushButton(tr("刷新设备列表"));
+    saveAudioToFile = new QPushButton(tr("保存至文件"));
+    flushDeviceButton = new QPushButton(tr("刷新设备列表"));
 
     connect(openAudioButton, &QPushButton::clicked, this, &AudioPage::switchAudioDevice);
 
-    connect(saveAudioToFile, &QPushButton::clicked, [](){
-        ;
-    });
+    saveAudioToFile->setEnabled(false);
+    connect(saveAudioToFile, &QPushButton::clicked, this, &AudioPage::switchAudioSave);
 
     connect(flushDeviceButton, &QPushButton::clicked, [this](){
         if(audio->flushDeviceList())
@@ -170,6 +172,11 @@ void AudioPage::switchAudioDevice()
         {
             addMessage(tr("录音设备已关闭"));
             openAudioButton->setText(tr("打开录音设备"));
+            if(inSave)
+            {
+                switchAudioSave();
+            }
+            updateUIWhenAudioSwitch(false);
         }
         else
         {
@@ -190,10 +197,69 @@ void AudioPage::switchAudioDevice()
             addMessage(tr("录音设备已打开"));
             openAudioButton->setText(tr("关闭录音设备"));
             waveView->setAudioParam(audio->format());
+            updateUIWhenAudioSwitch(true);
         }
         else
         {
             addMessage(tr("录音设备打开失败"));
         }
+    }
+}
+
+void AudioPage::switchAudioSave()
+{
+    if(inSave)
+    {
+        disconnect(audio, &AudioControl::dataReady, saveFile, QOverload<const QByteArray &>::of(&QFile::write));
+        saveFile->close();
+        addMessage(tr("已停止保存录音"));
+        saveAudioToFile->setText(tr("保存至文件"));
+        inSave = false;
+    }
+    else
+    {
+        QString preFileName = QString("%1_%2c_%3_%4_%5.pcm").arg(sampleRatesChooseBox->currentText())
+                                                            .arg(channelCountChooseBox->currentText())
+                                                            .arg(sampleTypeChooseBox->currentText())
+                                                            .arg(sampleSizeChooseBox->currentText())
+                                                            .arg(endiannessChooseBox->currentText());
+        auto fullPath = QFileDialog::getSaveFileName(nullptr, tr("保存音频文件"), preFileName);
+        if(!fullPath.isEmpty())
+        {
+            saveFile->setFileName(fullPath);
+            saveFile->open(QIODevice::WriteOnly);
+            connect(audio, &AudioControl::dataReady, saveFile, QOverload<const QByteArray &>::of(&QFile::write));
+            addMessage(tr("开始保存录音至文件"));
+            saveAudioToFile->setText(tr("停止保存"));
+            inSave = true;
+        }
+    }
+}
+
+void AudioPage::updateUIWhenAudioSwitch(bool open)
+{
+    if(open)
+    {
+        deviceChooseBox->setEnabled(false);
+        codecChooseBox->setEnabled(false);
+        sampleRatesChooseBox->setEnabled(false);
+        channelCountChooseBox->setEnabled(false);
+        sampleTypeChooseBox->setEnabled(false);
+        sampleSizeChooseBox->setEnabled(false);
+        endiannessChooseBox->setEnabled(false);
+        flushDeviceButton->setEnabled(false);
+        saveAudioToFile->setEnabled(true);
+    }
+    else
+    {
+        deviceChooseBox->setEnabled(true);
+        codecChooseBox->setEnabled(true);
+        sampleRatesChooseBox->setEnabled(true);
+        channelCountChooseBox->setEnabled(true);
+        sampleTypeChooseBox->setEnabled(true);
+        sampleSizeChooseBox->setEnabled(true);
+        endiannessChooseBox->setEnabled(true);
+        flushDeviceButton->setEnabled(true);
+        saveAudioToFile->setEnabled(false);
     }
 }

@@ -9,6 +9,7 @@
 class QComboBox;
 class QTextEdit;
 class QPushButton;
+class QFile;
 class AudioWaveView;
 class AudioControl;
 
@@ -23,15 +24,15 @@ public:
         return tr("音频识别");
     }
 
-signals:
-
 private:
     void initUI();
     void updateDeviceChooseBox();
     void updateDeviceParamBox(int index);
+    void updateUIWhenAudioSwitch(bool open); //true:打开设备 false:关闭设备
 
     void addMessage(const QString &message);
-    void switchAudioDevice(); //true 打开，false 关闭
+    void switchAudioDevice();
+    void switchAudioSave();
 
     QComboBox *deviceChooseBox;
     QComboBox *codecChooseBox;
@@ -42,8 +43,13 @@ private:
     QComboBox *endiannessChooseBox;
 
     QPushButton *openAudioButton;
+    QPushButton *saveAudioToFile;
+    QPushButton *flushDeviceButton;
 
     QTextEdit *msgBox;
     AudioWaveView *waveView;
     AudioControl *audio;
+
+    QFile *saveFile;
+    bool inSave = false;
 };

@@ -114,7 +114,7 @@ QStringList AudioControl::deviceList() const
 
 bool AudioControl::setCurrentDevice(int index)
 {
-    if(index >= data->deviceInfos.size() || isWorking())
+    if(index < 0 || index >= data->deviceInfos.size() || isWorking())
     {
         return false;
     }
