@@ -26,6 +26,8 @@ public:
 
 private:
     void initUI();
+    QVector<QPointF> generateWavePoints(int pointCount, const QVector<QPointF> &oldPoints, const QVector<qreal> &data);
+    QVector<QPointF> generateSpecPoints(int pointCount, const QVector<qreal> &data);
 
     //频谱图控件
     QtCharts::QLineSeries *specLineSeries;
@@ -41,4 +43,6 @@ private:
 
     //format相关
     QAudioFormat currentFormat;
+    int specPointCount = 0;
+    int wavePointCount = 0;
 };

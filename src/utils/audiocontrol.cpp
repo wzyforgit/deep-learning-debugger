@@ -234,7 +234,7 @@ bool AudioControl::openAudio(const QList<int> &paramIndexes)
     data->format = format;
 
     audioInput = new QAudioInput(data->info, format);
-    audioInput->setBufferSize(1024 * format.sampleSize());
+    audioInput->setBufferSize(format.sampleRate() / 4 * format.sampleSize() / 8);
     dataDevice->open(QIODevice::WriteOnly);
     audioInput->start(dataDevice);
 
