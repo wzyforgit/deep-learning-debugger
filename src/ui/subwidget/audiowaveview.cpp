@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "audiowaveview.h"
+#include "utils/utils.h"
 
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QValueAxis>
@@ -166,7 +167,7 @@ void AudioWaveView::setData(const QByteArray &data)
     //TODO：实现PCM音频播放功能
     //TODO：接入语音识别算法sherpa-ncnn
     //TODO：实现识别结果实时显示
-    //Priority：音频播放->升采样降采样->数据拼接->语音识别算法->识别结果显示
+    //Priority：音频播放 done->升采样降采样->数据拼接->语音识别算法->识别结果显示
 
     //1.波形图
 

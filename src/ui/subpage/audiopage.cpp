@@ -17,6 +17,12 @@
 #include <QGroupBox>
 #include <QFontMetrics>
 #include <QAbstractItemView>
+#include <QTabBar>
+#include <QStackedWidget>
+#include <QLineEdit>
+#include <QRegExp>
+#include <QRegExpValidator>
+
 #include <QtDebug>
 
 //基本逻辑：deviceChooseBox更新一次刷新一次下方控件
@@ -31,10 +37,8 @@ AudioPage::AudioPage(QWidget *parent)
     updateDeviceParamBox(0);
 }
 
-void AudioPage::initUI()
+QWidget* AudioPage::initAudioUI()
 {
-    auto panelGroup = new QGroupBox(tr("操作面板"));
-
     auto deviceChooseLabel = new QLabel(tr("音频输入设备"));
     deviceChooseBox = new QComboBox;
     deviceChooseBox->setMaximumWidth(150);
@@ -43,7 +47,7 @@ void AudioPage::initUI()
     auto codecChooseLabel = new QLabel(tr("数据编码格式"));
     codecChooseBox = new QComboBox;
 
-    auto freqChooseLabel = new QLabel(tr("采样率"));
+    auto sampleRatesChooseLabel = new QLabel(tr("采样率"));
     sampleRatesChooseBox = new QComboBox;
 
     auto channelCountChooseLabel = new QLabel(tr("声道数量"));
@@ -63,7 +67,7 @@ void AudioPage::initUI()
     audioInputLayer->addWidget(deviceChooseBox, 0, 1);
     audioInputLayer->addWidget(codecChooseLabel, 1, 0);
     audioInputLayer->addWidget(codecChooseBox, 1, 1);
-    audioInputLayer->addWidget(freqChooseLabel, 2, 0);
+    audioInputLayer->addWidget(sampleRatesChooseLabel, 2, 0);
     audioInputLayer->addWidget(sampleRatesChooseBox, 2, 1);
     audioInputLayer->addWidget(channelCountChooseLabel, 3, 0);
     audioInputLayer->addWidget(channelCountChooseBox, 3, 1);
@@ -96,11 +100,103 @@ void AudioPage::initUI()
     deviceOpenLayer->addWidget(saveAudioToFile);
     deviceOpenLayer->addWidget(flushDeviceButton);
 
+    auto audioLayer = new QVBoxLayout;
+    audioLayer->addLayout(audioInputLayer);
+    audioLayer->addLayout(deviceOpenLayer);
+
+    auto result = new QWidget;
+    result->setLayout(audioLayer);
+    return result;
+}
+
+QWidget* AudioPage::initFileUI()
+{
+    auto fileCodecChooseLabel = new QLabel(tr("数据编码格式"));
+    fileCodecChooseBox = new QComboBox;
+    fileCodecChooseBox->addItem("audio/pcm");
+
+    auto fileSampleRatesLabel = new QLabel(tr("采样率"));
+    fileSampleRatesEdit = new QLineEdit;
+    fileSampleRatesEdit->setValidator(new QRegExpValidator(QRegExp("[0-9]+")));
+
+    auto fileChannelCountChooseLabel = new QLabel(tr("声道数量"));
+    fileChannelCountChooseBox = new QComboBox;
+    fileChannelCountChooseBox->addItem("1");
+
+    auto fileSampleTypeChooseLabel = new QLabel(tr("采样数据格式"));
+    fileSampleTypeChooseBox = new QComboBox;
+    fileSampleTypeChooseBox->addItems({"SignedInt", "UnSignedInt", "Float"});
+
+    auto fileSampleSizeChooseLabel = new QLabel(tr("采样位数"));
+    fileSampleSizeChooseBox = new QComboBox;
+    fileSampleSizeChooseBox->addItems({"8", "16", "32"});
+
+    auto fileEndiannessChooseLabel = new QLabel(tr("采样数据端序"));
+    fileEndiannessChooseBox = new QComboBox;
+    fileEndiannessChooseBox->addItems({"BigEndian", "LittleEndian"});
+
+    auto audioInputLayer = new QGridLayout;
+    audioInputLayer->addWidget(fileCodecChooseLabel, 0, 0);
+    audioInputLayer->addWidget(fileCodecChooseBox, 0, 1);
+    audioInputLayer->addWidget(fileSampleRatesLabel, 1, 0);
+    audioInputLayer->addWidget(fileSampleRatesEdit, 1, 1, Qt::AlignRight);
+    audioInputLayer->addWidget(fileChannelCountChooseLabel, 2, 0);
+    audioInputLayer->addWidget(fileChannelCountChooseBox, 2, 1);
+    audioInputLayer->addWidget(fileSampleTypeChooseLabel, 3, 0);
+    audioInputLayer->addWidget(fileSampleTypeChooseBox, 3, 1);
+    audioInputLayer->addWidget(fileSampleSizeChooseLabel, 4, 0);
+    audioInputLayer->addWidget(fileSampleSizeChooseBox, 4, 1);
+    audioInputLayer->addWidget(fileEndiannessChooseLabel, 5, 0);
+    audioInputLayer->addWidget(fileEndiannessChooseBox, 5, 1);
+    fileSampleRatesEdit->setFixedWidth(150);
+
+    fileChooseEdit = new QLineEdit;
+    auto fileChooseButton = new QPushButton("...");
+    connect(fileChooseButton, &QPushButton::clicked, [this](){
+        auto filePath = QFileDialog::getOpenFileName();
+        if(!filePath.isEmpty())
+        {
+            fileChooseEdit->setText(filePath);
+        }
+    });
+
+    openFileButton = new QPushButton(tr("开始播放"));
+    connect(openFileButton, &QPushButton::clicked, this, &AudioPage::switchAudioFileOpen);
+
+    auto fileChooseLayer = new QHBoxLayout;
+    fileChooseLayer->addWidget(fileChooseEdit);
+    fileChooseLayer->addWidget(fileChooseButton);
+    //fileChooseLayer->addWidget(openFileButton);
+
+    auto audioLayer = new QVBoxLayout;
+    audioLayer->addLayout(audioInputLayer);
+    audioLayer->addLayout(fileChooseLayer);
+    audioLayer->addWidget(openFileButton);
+
+    auto result = new QWidget;
+    result->setLayout(audioLayer);
+    return result;
+}
+
+void AudioPage::initUI()
+{
+    auto panelGroup = new QGroupBox(tr("操作面板"));
+
     msgBox = new QTextEdit;
+    msgBox->setReadOnly(true);
+
+    auto viewStack = new QStackedWidget;
+    viewStack->addWidget(initFileUI());
+    viewStack->addWidget(initAudioUI());
+
+    auto viewChangeTab = new QTabBar;
+    viewChangeTab->addTab(tr("播放文件"));
+    viewChangeTab->addTab(tr("实时音频"));
+    connect(viewChangeTab, &QTabBar::currentChanged, viewStack, &QStackedWidget::setCurrentIndex);
 
     auto panelLayer = new QVBoxLayout;
-    panelLayer->addLayout(audioInputLayer);
-    panelLayer->addLayout(deviceOpenLayer);
+    panelLayer->addWidget(viewChangeTab);
+    panelLayer->addWidget(viewStack, 0, Qt::AlignTop);
     panelLayer->addWidget(msgBox);
     panelGroup->setLayout(panelLayer);
 
@@ -261,5 +357,56 @@ void AudioPage::updateUIWhenAudioSwitch(bool open)
         endiannessChooseBox->setEnabled(true);
         flushDeviceButton->setEnabled(true);
         saveAudioToFile->setEnabled(false);
+    }
+}
+
+void AudioPage::switchAudioFileOpen()
+{
+    if(audio->isWorking())
+    {
+        if(audio->closeAudio())
+        {
+            addMessage(tr("播放设备已关闭"));
+            openFileButton->setText(tr("开始播放"));
+        }
+        else
+        {
+            addMessage(tr("播放设备关闭失败"));
+        }
+    }
+    else
+    {
+        auto fileName = fileChooseEdit->text();
+        if(!QFile::exists(fileName))
+        {
+            addMessage(tr("PCM文件不存在"));
+            return;
+        }
+
+        auto sampleRate = fileSampleRatesEdit->text().toInt();
+        if(sampleRate <= 0)
+        {
+            addMessage(tr("采样率设置错误"));
+            return;
+        }
+
+        QAudioFormat format;
+        format.setCodec(fileCodecChooseBox->currentText());
+        format.setSampleRate(sampleRate);
+        format.setChannelCount(fileChannelCountChooseBox->currentText().toInt());
+        format.setSampleType(static_cast<QAudioFormat::SampleType>(fileSampleTypeChooseBox->currentIndex() + 1));
+        format.setSampleSize(fileSampleSizeChooseBox->currentText().toInt());
+        format.setByteOrder(static_cast<QAudioFormat::Endian>(fileEndiannessChooseBox->currentIndex()));
+
+        if(audio->openAudio(fileName, format))
+        {
+            waveView->setAudioParam(format);
+            addMessage(tr("播放设备已打开"));
+            openFileButton->setText(tr("停止播放"));
+        }
+        else
+        {
+            addMessage(tr("播放设备打开失败"));
+        }
     }
 }

@@ -8,6 +8,7 @@
 #include <QAudioFormat>
 
 class QAudioInput;
+class QAudioOutput;
 class AudioControlDatas;
 class AudioControlDataDevice;
 
@@ -38,6 +39,9 @@ public:
     //打开设备，参数为选择的参数值的下标，需要传入6个整数值，分别对应上面的设备信息
     bool openAudio(const QList<int> &paramIndexes);
 
+    //打开文件，读取数据并进行播放
+    bool openAudio(const QString &fileName, const QAudioFormat &format);
+
     //关闭设备
     bool closeAudio();
 
@@ -55,4 +59,5 @@ private:
     AudioControlDatas *data;
     AudioControlDataDevice *dataDevice;
     QAudioInput *audioInput = nullptr;
+    QAudioOutput *audioOutput = nullptr;
 };

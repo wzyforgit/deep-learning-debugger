@@ -7,6 +7,8 @@
 #include <QAudioDeviceInfo>
 #include <QAudioFormat>
 #include <QAudioInput>
+#include <QAudioOutput>
+#include <QFile>
 
 #include <QtDebug>
 
@@ -36,6 +38,8 @@ class AudioControlDataDevice : public QIODevice
 
 public:
     AudioControlDataDevice(QObject *parent = nullptr);
+    bool setPcmFile(const QString &path);
+    void close() override;
 
 signals:
     void dataReady(const QByteArray &data);
@@ -43,6 +47,9 @@ signals:
 protected:
     qint64 readData(char *data, qint64 maxlen) override;
     qint64 writeData(const char *data, qint64 len) override;
+
+private:
+    QFile pcmFile;
 };
 
 AudioControlDataDevice::AudioControlDataDevice(QObject *parent)
@@ -50,11 +57,36 @@ AudioControlDataDevice::AudioControlDataDevice(QObject *parent)
 {
 }
 
+bool AudioControlDataDevice::setPcmFile(const QString &path)
+{
+    if(this->isOpen())
+    {
+        this->close();
+    }
+    pcmFile.setFileName(path);
+    return pcmFile.open(QIODevice::ReadOnly);
+}
+
+void AudioControlDataDevice::close()
+{
+    if(pcmFile.isOpen())
+    {
+        pcmFile.close();
+    }
+    QIODevice::close();
+}
+
 qint64 AudioControlDataDevice::readData(char *data, qint64 maxlen)
 {
-    Q_UNUSED(data);
-    Q_UNUSED(maxlen);
-    return -1;
+    auto newData = pcmFile.read(maxlen);
+
+    if(!newData.isEmpty())
+    {
+        emit dataReady(newData);
+        memcpy(data, newData.data(), newData.size());
+    }
+
+    return newData.size();
 }
 
 qint64 AudioControlDataDevice::writeData(const char *data, qint64 len)
@@ -82,6 +114,12 @@ AudioControl::~AudioControl()
     {
         audioInput->stop();
         audioInput->deleteLater();
+    }
+
+    if(audioOutput != nullptr)
+    {
+        audioOutput->stop();
+        audioOutput->deleteLater();
     }
 
     dataDevice->close();
@@ -241,6 +279,31 @@ bool AudioControl::openAudio(const QList<int> &paramIndexes)
     return true;
 }
 
+bool AudioControl::openAudio(const QString &fileName, const QAudioFormat &format)
+{
+    if(audioOutput != nullptr)
+    {
+        return false;
+    }
+
+    if(!dataDevice->setPcmFile(fileName))
+    {
+        return false;
+    }
+
+    auto outputDevice = QAudioDeviceInfo::defaultOutputDevice();
+    if(!outputDevice.isFormatSupported(format))
+    {
+        return false;
+    }
+
+    audioOutput = new QAudioOutput(format);
+    dataDevice->open(QIODevice::ReadOnly);
+    audioOutput->start(dataDevice);
+
+    return true;
+}
+
 bool AudioControl::closeAudio()
 {
     if(audioInput != nullptr)
@@ -250,13 +313,20 @@ bool AudioControl::closeAudio()
         audioInput = nullptr;
     }
 
+    if(audioOutput != nullptr)
+    {
+        audioOutput->stop();
+        audioOutput->deleteLater();
+        audioOutput = nullptr;
+    }
+
     dataDevice->close();
     return true;
 }
 
 bool AudioControl::isWorking() const
 {
-    return audioInput != nullptr;
+    return audioInput != nullptr || audioOutput != nullptr;
 }
 
 QAudioFormat AudioControl::format() const

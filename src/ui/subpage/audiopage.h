@@ -8,6 +8,7 @@
 
 class QComboBox;
 class QTextEdit;
+class QLineEdit;
 class QPushButton;
 class QFile;
 class AudioWaveView;
@@ -26,6 +27,9 @@ public:
 
 private:
     void initUI();
+    QWidget *initFileUI();
+    QWidget *initAudioUI();
+
     void updateDeviceChooseBox();
     void updateDeviceParamBox(int index);
     void updateUIWhenAudioSwitch(bool open); //true:打开设备 false:关闭设备
@@ -33,7 +37,9 @@ private:
     void addMessage(const QString &message);
     void switchAudioDevice();
     void switchAudioSave();
+    void switchAudioFileOpen();
 
+    //录音用
     QComboBox *deviceChooseBox;
     QComboBox *codecChooseBox;
     QComboBox *sampleRatesChooseBox;
@@ -46,6 +52,18 @@ private:
     QPushButton *saveAudioToFile;
     QPushButton *flushDeviceButton;
 
+    //播放文件用
+    QLineEdit *fileSampleRatesEdit;
+    QComboBox *fileChannelCountChooseBox;
+    QComboBox *fileSampleTypeChooseBox;
+    QComboBox *fileSampleSizeChooseBox;
+    QComboBox *fileEndiannessChooseBox;
+
+    QLineEdit *fileChooseEdit;
+    QComboBox *fileCodecChooseBox;
+    QPushButton *openFileButton;
+
+    //公共设施
     QTextEdit *msgBox;
     AudioWaveView *waveView;
     AudioControl *audio;
