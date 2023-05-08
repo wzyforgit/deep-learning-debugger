@@ -160,22 +160,17 @@ QVector<QPointF> AudioWaveView::generateSpecPoints(int pointCount, const QVector
 
 void AudioWaveView::setData(const QByteArray &data)
 {
-    //先只处理8bits,unsigned
-
     //TODO：其他数据类型处理：16bit,float,实现数据拼接代码
     //TODO：实现升采样和降采样，即能够变换到指定的采样率
     //TODO：实现PCM音频播放功能
     //TODO：接入语音识别算法sherpa-ncnn
     //TODO：实现识别结果实时显示
-    //Priority：音频播放 done->升采样降采样->数据拼接->语音识别算法->识别结果显示
+    //Priority：音频播放 done->升采样降采样 done->数据拼接 done->语音识别算法->识别结果显示
 
     //1.波形图
 
     //1.1.归一化数据至[-1, 1]
-    QVector<qreal> stdWaveData;
-    std::transform(data.begin(), data.end(), std::back_inserter(stdWaveData), [](uint8_t currentData){
-        return (currentData - 127.5) / 127.5;
-    });
+    QVector<qreal> stdWaveData = sampleDataFusion(data, currentFormat);
 
     //1.2.组合成点序列
     auto wavePoints = generateWavePoints(wavePointCount, waveLineSeries->pointsVector(), stdWaveData);

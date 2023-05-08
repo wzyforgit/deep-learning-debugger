@@ -6,10 +6,18 @@
 
 #include <QImage>
 #include <QVector>
+#include <QAudioFormat>
 #include <opencv2/opencv.hpp>
 
 //提供毫秒级时间计算
 extern double getCurrentTime();
+
+//cv::Mat -> QImage
+extern QImage cvMat2QImage(const cv::Mat &mat);
+
+//数据拼接（char -> 8bit, 16bit, 32bit, float -> float）
+//最终需要输出范围在[-1, 1]区间内的浮点数据
+extern QVector<qreal> sampleDataFusion(const QByteArray &data, const QAudioFormat &format);
 
 //测算函数的执行时间
 template <typename Func>
@@ -19,9 +27,6 @@ void runWithTime(Func &&f, double *timeUsed)
     f();
     *timeUsed = getCurrentTime() - start;
 }
-
-//cv::Mat -> QImage
-extern QImage cvMat2QImage(const cv::Mat &mat);
 
 //对一维数据进行升降采样
 template <typename T>
