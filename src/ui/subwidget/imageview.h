@@ -10,6 +10,7 @@
 #include <QGraphicsView>
 
 class QGraphicsPixmapItem;
+class QShortcut;
 
 class ImageView : public QGraphicsView
 {
@@ -19,6 +20,7 @@ public:
     ~ImageView() = default;
     //设置图片
     void setImage(const QImage &image);
+    void setImages(const QStringList &newImagePaths);
     //用于鼠标滚轮滑动
     qreal windowRelativeScale() const;
     qreal imageRelativeScale() const;
@@ -52,4 +54,11 @@ private:
     qreal m_scal = 1.0;
     int resolutionX = 0;
     int resolutionY = 0;
+
+    //图片路径控制
+    void enableSwitchImage();
+    QStringList imagePaths;
+    QShortcut *pre = nullptr;
+    QShortcut *next = nullptr;
+    int currentImageIndex = -1;
 };

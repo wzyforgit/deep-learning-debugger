@@ -11,6 +11,7 @@ class QTabBar;
 class QStackedWidget;
 
 //tab页面
+class ClassifyPage;
 class DetectPage;
 class AudioPage;
 
@@ -28,6 +29,7 @@ private:
     QTabBar *tabBar;
     QStackedWidget *pageWidget;
 
+    ClassifyPage *classifyPage;
     DetectPage *detectPage;
     AudioPage *audioPage;
 };

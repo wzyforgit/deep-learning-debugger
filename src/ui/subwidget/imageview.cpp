@@ -9,6 +9,7 @@
 
 #include <QGraphicsPixmapItem>
 #include <QMouseEvent>
+#include <QShortcut>
 #include <QtMath>
 
 ImageView::ImageView(QWidget *parent)
@@ -37,6 +38,47 @@ void ImageView::setImage(const QImage &image)
         autoFit();
         resolutionX = image.width();
         resolutionY = image.height();
+    }
+}
+
+void ImageView::setImages(const QStringList &newImagePaths)
+{
+    if(newImagePaths.isEmpty())
+    {
+        return;
+    }
+
+    imagePaths = newImagePaths;
+    currentImageIndex = 0;
+    setImage(QImage(newImagePaths[0]));
+    enableSwitchImage();
+}
+
+void ImageView::enableSwitchImage()
+{
+    if(pre == nullptr && next == nullptr)
+    {
+        pre = new QShortcut(QKeySequence(Qt::Key_Left), this);
+        pre->setContext(Qt::WidgetShortcut);
+        connect(pre, &QShortcut::activated, this, [this](){
+            int preIndex = currentImageIndex - 1;
+            if(preIndex >= 0)
+            {
+                setImage(QImage(imagePaths[preIndex]));
+                --currentImageIndex;
+            }
+        });
+
+        next = new QShortcut(QKeySequence(Qt::Key_Right), this);
+        next->setContext(Qt::WidgetShortcut);
+        connect(next, &QShortcut::activated, this, [this](){
+            int nextIndex = currentImageIndex + 1;
+            if(nextIndex < imagePaths.size())
+            {
+                setImage(QImage(imagePaths[nextIndex]));
+                ++currentImageIndex;
+            }
+        });
     }
 }
 

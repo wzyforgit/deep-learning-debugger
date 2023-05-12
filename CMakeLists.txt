@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 wzyforgit
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 cmake_minimum_required(VERSION 3.13)
 
 set(BIN_NAME deep-learning-debugger)
@@ -33,6 +37,7 @@ include_directories(./src)
 aux_source_directory(./src allSource)
 aux_source_directory(./src/alg allSource)
 aux_source_directory(./src/alg/detect allSource)
+aux_source_directory(./src/alg/classify allSource)
 aux_source_directory(./src/ui allSource)
 aux_source_directory(./src/ui/subpage allSource)
 aux_source_directory(./src/ui/subwidget allSource)

@@ -164,6 +164,7 @@ void DetectPage::initUI()
 void DetectPage::addMessage(const QString &msg)
 {
     msgBox->insertPlainText(msg + "\n");
+    msgBox->moveCursor(QTextCursor::End);
 }
 
 void DetectPage::openImage(const QString &path)

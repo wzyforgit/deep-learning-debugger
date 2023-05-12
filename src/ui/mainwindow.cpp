@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mainwindow.h"
+#include "ui/subpage/classifypage.h"
 #include "ui/subpage/detectpage.h"
 #include "ui/subpage/audiopage.h"
 
@@ -14,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , tabBar(new QTabBar)
     , pageWidget(new QStackedWidget)
+    , classifyPage(new ClassifyPage)
     , detectPage(new DetectPage)
     , audioPage(new AudioPage)
 {
@@ -32,6 +34,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::initTab()
 {
+    //图片分类
+    tabBar->addTab(classifyPage->pageName());
+    pageWidget->addWidget(classifyPage);
+
     //目标检测
     tabBar->addTab(detectPage->pageName());
     pageWidget->addWidget(detectPage);
