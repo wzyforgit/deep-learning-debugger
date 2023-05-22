@@ -29,7 +29,7 @@ public:
     void init();
     void setImage(const QImage &image);
     void analyze();
-    QList<DetectResult> result();
+    QList<DetectResult> result() const;
 
 private:
     QList<DetectResult> generateDetectResult(const ncnn::Mat &out, float bboxThreshold, float clsThreshold);

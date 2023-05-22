@@ -48,7 +48,7 @@ void Yolov5s::setImage(const QImage &image)
     imageCache = image.convertToFormat(QImage::Format_RGB888);
 }
 
-QList<Yolov5s::DetectResult> Yolov5s::result()
+QList<Yolov5s::DetectResult> Yolov5s::result() const
 {
     return lastResult;
 }

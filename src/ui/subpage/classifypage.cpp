@@ -113,6 +113,7 @@ void ClassifyPage::initUI()
 
     //消息框
     msgBox = new QTextEdit;
+    msgBox->setReadOnly(true);
 
     //整合操作面板
     auto panelLayer = new QVBoxLayout;
@@ -182,6 +183,7 @@ void ClassifyPage::startClassify(const QString &testPicDir, const QString &train
 
 void ClassifyPage::addMessage(const QString &message)
 {
+    msgBox->moveCursor(QTextCursor::End);
     msgBox->insertPlainText(message + "\n");
     msgBox->moveCursor(QTextCursor::End);
 }

@@ -257,6 +257,7 @@ void AudioPage::updateDeviceParamBox(int index)
 
 void AudioPage::addMessage(const QString &message)
 {
+    msgBox->moveCursor(QTextCursor::End);
     msgBox->insertPlainText(message + "\n");
     msgBox->moveCursor(QTextCursor::End);
 }

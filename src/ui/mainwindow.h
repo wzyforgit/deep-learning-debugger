@@ -14,6 +14,7 @@ class QStackedWidget;
 class ClassifyPage;
 class DetectPage;
 class AudioPage;
+class FacePage;
 
 class MainWindow : public QMainWindow
 {
@@ -32,4 +33,5 @@ private:
     ClassifyPage *classifyPage;
     DetectPage *detectPage;
     AudioPage *audioPage;
+    FacePage *facePage;
 };

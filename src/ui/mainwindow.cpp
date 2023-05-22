@@ -6,6 +6,7 @@
 #include "ui/subpage/classifypage.h"
 #include "ui/subpage/detectpage.h"
 #include "ui/subpage/audiopage.h"
+#include "ui/subpage/facepage.h"
 
 #include <QTabBar>
 #include <QStackedWidget>
@@ -18,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
     , classifyPage(new ClassifyPage)
     , detectPage(new DetectPage)
     , audioPage(new AudioPage)
+    , facePage(new FacePage)
 {
     auto allLayer = new QVBoxLayout;
     allLayer->addWidget(tabBar);
@@ -41,6 +43,10 @@ void MainWindow::initTab()
     //目标检测
     tabBar->addTab(detectPage->pageName());
     pageWidget->addWidget(detectPage);
+
+    //人脸识别
+    tabBar->addTab(facePage->pageName());
+    pageWidget->addWidget(facePage);
 
     //音频识别
     tabBar->addTab(audioPage->pageName());

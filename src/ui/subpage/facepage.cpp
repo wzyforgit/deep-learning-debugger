@@ -1,12 +1,15 @@
-﻿// SPDX-FileCopyrightText: 2023 wzyforgit
+// SPDX-FileCopyrightText: 2023 wzyforgit
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "detectpage.h"
+#include "facepage.h"
 #include "ui/subwidget/imageview.h"
-#include "alg/detect/yolov5s.h"
+#include "ui/subwidget/faceview.h"
 #include "utils/utils.h"
 #include "utils/cameracontrol.h"
+#include "alg/face/retinaface.h"
+#include "alg/face/facealign.h"
+#include "alg/face/arcface.h"
 
 #include <QGroupBox>
 #include <QVBoxLayout>
@@ -20,15 +23,18 @@
 #include <QTextEdit>
 #include <QLabel>
 #include <QTimer>
+#include <QListView>
 
-DetectPage::DetectPage(QWidget *parent)
+FacePage::FacePage(QWidget *parent)
     : QWidget(parent)
     , srcView(new ImageView)
     , dstView(new ImageView)
     , msgBox(new QTextEdit)
-    , yolov5s(new Yolov5s)
     , camera(new CameraControl)
     , cameraFlushTimer(new QTimer)
+    , retinaFace(new RetinaFace)
+    , faceAlign(new FaceAlign)
+    , arcFace(new ArcFace)
 {
     initUI();
 
@@ -42,7 +48,7 @@ DetectPage::DetectPage(QWidget *parent)
     });
 }
 
-void DetectPage::initUI()
+void FacePage::initUI()
 {
     //图片展示
     auto srcViewGroup = new QGroupBox(tr("原始图片"));
@@ -135,6 +141,22 @@ void DetectPage::initUI()
     videoControlWidget->setLayout(videoControlLayer);
     panelSwitchWidget->addWidget(videoControlWidget);
 
+    //人脸识别面板
+    auto captureFaceButton = new QPushButton(tr("截取人脸"));
+    connect(captureFaceButton, &QPushButton::clicked, [this](){
+        faceChooseView->setImages(alignFaces);
+    });
+
+    auto recFaceButton = new QPushButton(tr("比对选中的人脸"));
+    connect(recFaceButton, &QPushButton::clicked, this, &FacePage::recFaces);
+
+    auto recPanel = new QHBoxLayout;
+    recPanel->addWidget(captureFaceButton);
+    recPanel->addWidget(recFaceButton);
+
+    //人脸选择面板
+    faceChooseView = new FaceView;
+
     //组装tab
     auto viewChangeTab = new QTabBar;
     viewChangeTab->addTab(tr("图片测试"));
@@ -144,6 +166,8 @@ void DetectPage::initUI()
 
     panelLayer->addWidget(viewChangeTab);
     panelLayer->addWidget(panelSwitchWidget, 0, Qt::AlignTop);
+    panelLayer->addLayout(recPanel);
+    panelLayer->addWidget(faceChooseView);
     panelLayer->addWidget(msgBox);
     panelGroup->setLayout(panelLayer);
 
@@ -161,19 +185,19 @@ void DetectPage::initUI()
     setLayout(allLayer);
 }
 
-void DetectPage::addMessage(const QString &msg)
+void FacePage::addMessage(const QString &msg)
 {
     msgBox->moveCursor(QTextCursor::End);
     msgBox->insertPlainText(msg + "\n");
     msgBox->moveCursor(QTextCursor::End);
 }
 
-void DetectPage::openImage(const QString &path)
+void FacePage::openImage(const QString &path)
 {
     openImage(QImage(path), false);
 }
 
-void DetectPage::openImage(const QImage &image, bool useFps)
+void FacePage::openImage(const QImage &image, bool useFps)
 {
     if(image.isNull())
     {
@@ -183,28 +207,38 @@ void DetectPage::openImage(const QImage &image, bool useFps)
     auto srcImage = image;
     srcView->setImage(srcImage);
 
-    //1.执行计算
-    yolov5s->setImage(srcImage);
-
+    //执行计算
+    retinaFace->setImage(srcImage);
     double timeUsed = 0;
     runWithTime([this](){
-        yolov5s->analyze();
+        retinaFace->analyze();
     }, &timeUsed);
 
-    auto result = yolov5s->result();
+    auto result = retinaFace->result();
+    faceAlign->setImage(srcImage);
+    alignFaces.clear();
 
-    //2.绘制结果
+    //绘制结果
     QImage imageOut(srcImage);
     QPainter painter(&imageOut);
     for(auto &eachResult : result)
     {
         painter.setPen(QPen(Qt::red, 2));
         painter.drawRect(eachResult.bbox);
-        painter.drawText(eachResult.bbox.x() + 5, eachResult.bbox.y() + 14, eachResult.clsStr);
+
+        for(int i = 0;i != 10;i += 2)
+        {
+            painter.drawPoint(QPointF(eachResult.landmark[i], eachResult.landmark[i + 1]));
+        }
+
+        //保存人脸
+        faceAlign->analyze(eachResult.landmark);
+        alignFaces.push_back(faceAlign->result());
     }
     painter.end();
     dstView->setImage(imageOut);
 
+    //显示用时情况
     if(!useFps)
     {
         addMessage(tr("本轮分析用时：%1ms").arg(timeUsed));
@@ -214,4 +248,34 @@ void DetectPage::openImage(const QImage &image, bool useFps)
         double fps = 1000.0 / timeUsed;
         fpsLabel->setText(QString::number(fps, 'g', 4) + " fps");
     }
+}
+
+void FacePage::recFaces()
+{
+    auto chooseIndexes = faceChooseView->imageChoosed();
+    QList<QImage> images;
+    for(auto &eachIndex : chooseIndexes)
+    {
+        images.push_back(alignFaces.at(eachIndex));
+    }
+
+    QList<QVector<float>> feats;
+    double timeUsed;
+    runWithTime([this, images, &feats](){
+        for(auto &eachImage : images)
+        {
+            arcFace->setImage(eachImage);
+            arcFace->analyze();
+            feats.push_back(arcFace->result());
+        }
+    }, &timeUsed);
+
+    if(images.size() > 1)
+    {
+        auto sim = ArcFace::compare(feats[0], feats[1]);
+        addMessage(tr("第%1和第%2的相似度为: %3").arg(chooseIndexes[0])
+                                                   .arg(chooseIndexes[1])
+                                                   .arg(sim));
+    }
+    addMessage(tr("本次分析耗时: %1ms").arg(timeUsed));
 }
