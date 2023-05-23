@@ -11,7 +11,7 @@ void FaceAlign::setImage(const QImage &image)
     imageCache = image.convertToFormat(QImage::Format_RGB888);
 }
 
-//改编自ncnn wiki
+//改编自ncnn wiki：https://github.com/Tencent/ncnn/wiki/faq#%E5%A6%82%E4%BD%95%E4%BA%BA%E8%84%B85%E7%82%B9%E5%AF%B9%E9%BD%90
 void FaceAlign::analyze(float *currentLandmark)
 {
     static float pointDst[10] = { // +8 是因为我们处理112*112的图，不加则是 112*96

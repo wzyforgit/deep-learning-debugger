@@ -2,8 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// SPDX-FileCopyrightText: 2022 UnionTech Software Technology Co., Ltd.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 //改编自：https://github.com/linuxdeepin/deepin-ocr/blob/master/src/view/imageview.cpp
-//原版权所有者：UnionTech Software Technology Co., Ltd.
 
 #include "imageview.h"
 

@@ -160,12 +160,9 @@ QVector<QPointF> AudioWaveView::generateSpecPoints(int pointCount, const QVector
 
 void AudioWaveView::setData(const QByteArray &data)
 {
-    //TODO：其他数据类型处理：16bit,float,实现数据拼接代码
-    //TODO：实现升采样和降采样，即能够变换到指定的采样率
-    //TODO：实现PCM音频播放功能
     //TODO：接入语音识别算法sherpa-ncnn
     //TODO：实现识别结果实时显示
-    //Priority：音频播放 done->升采样降采样 done->数据拼接 done->语音识别算法->识别结果显示
+    //Priority：语音识别算法->识别结果显示
 
     //1.波形图
 

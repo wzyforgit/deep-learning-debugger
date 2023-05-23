@@ -4,7 +4,6 @@
 
 #include "detectpage.h"
 #include "ui/subwidget/imageview.h"
-#include "alg/detect/yolov5s.h"
 #include "utils/utils.h"
 #include "utils/cameracontrol.h"
 
@@ -27,6 +26,7 @@ DetectPage::DetectPage(QWidget *parent)
     , dstView(new ImageView)
     , msgBox(new QTextEdit)
     , yolov5s(new Yolov5s)
+    , yolact(new Yolact)
     , camera(new CameraControl)
     , cameraFlushTimer(new QTimer)
 {
@@ -183,6 +183,7 @@ void DetectPage::openImage(const QImage &image, bool useFps)
     auto srcImage = image;
     srcView->setImage(srcImage);
 
+#if 0 //yolo目标检测
     //1.执行计算
     yolov5s->setImage(srcImage);
 
@@ -194,16 +195,20 @@ void DetectPage::openImage(const QImage &image, bool useFps)
     auto result = yolov5s->result();
 
     //2.绘制结果
-    QImage imageOut(srcImage);
-    QPainter painter(&imageOut);
-    for(auto &eachResult : result)
-    {
-        painter.setPen(QPen(Qt::red, 2));
-        painter.drawRect(eachResult.bbox);
-        painter.drawText(eachResult.bbox.x() + 5, eachResult.bbox.y() + 14, eachResult.clsStr);
-    }
-    painter.end();
-    dstView->setImage(imageOut);
+    dstView->setImage(drawOnYolov5s(srcImage, result));
+#else //yolact实例分割
+    //1.执行计算
+    yolact->setImage(srcImage);
+    double timeUsed = 0;
+    runWithTime([this](){
+        yolact->analyze();
+    }, &timeUsed);
+
+    auto result = yolact->result();
+
+    //2.绘制结果
+    dstView->setImage(drawOnYolact(srcImage, result));
+#endif
 
     if(!useFps)
     {
@@ -214,4 +219,61 @@ void DetectPage::openImage(const QImage &image, bool useFps)
         double fps = 1000.0 / timeUsed;
         fpsLabel->setText(QString::number(fps, 'g', 4) + " fps");
     }
+}
+
+QImage DetectPage::drawOnYolov5s(const QImage &srcImage, const QList<Yolov5s::DetectResult> &result)
+{
+    QImage imageOut(srcImage);
+    QPainter painter(&imageOut);
+    for(const auto &eachResult : result)
+    {
+        painter.setPen(QPen(Qt::red, 2));
+        painter.drawRect(eachResult.bbox);
+        painter.drawText(eachResult.bbox.x() + 5, eachResult.bbox.y() + 14, eachResult.clsStr);
+    }
+    painter.end();
+    return imageOut;
+}
+
+QImage DetectPage::drawOnYolact(const QImage &srcImage, const QList<Yolact::DetectResult> &result)
+{
+    QImage dstImage = srcImage.convertToFormat(QImage::Format_RGB888);
+    QPainter painter(&dstImage);
+    const auto &colors = drawPalette();
+    int color_index = 0;
+    for (int i = 0; i < result.size(); i++)
+    {
+        const Yolact::DetectResult& obj = result[i];
+
+        auto color = colors[color_index % 81];
+        color_index++;
+
+        //绘制矩形框
+        painter.setPen(QPen(color, 2));
+        QRect rect(obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height);
+        painter.drawRect(rect);
+
+        //绘制文本
+        painter.setPen(QPen(Qt::black, 2));
+        painter.drawText(rect.x() + 5, rect.y() + 14, QString("%1 %2%").arg(obj.labelStr).arg(QString::number(obj.prob * 100, 'f', 2)));
+
+        //绘制mask
+        for (int y = 0; y < dstImage.height(); y++)
+        {
+            const uchar* mp = obj.mask.ptr(y);
+            uchar* p = dstImage.scanLine(y);
+            for (int x = 0; x < dstImage.width(); x++)
+            {
+                if (mp[x] == 255)
+                {
+                    p[0] = cv::saturate_cast<uchar>(p[0] * 0.5 + color.red() * 0.5);
+                    p[1] = cv::saturate_cast<uchar>(p[1] * 0.5 + color.green() * 0.5);
+                    p[2] = cv::saturate_cast<uchar>(p[2] * 0.5 + color.blue() * 0.5);
+                }
+                p += 3;
+            }
+        }
+    }
+
+    return dstImage;
 }

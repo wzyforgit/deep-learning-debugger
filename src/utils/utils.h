@@ -19,6 +19,9 @@ extern QImage cvMat2QImage(const cv::Mat &mat);
 //最终需要输出范围在[-1, 1]区间内的浮点数据
 extern QVector<qreal> sampleDataFusion(const QByteArray &data, const QAudioFormat &format);
 
+//提供绘制所需的调色盘
+extern const QList<QColor>& drawPalette();
+
 //测算函数的执行时间
 template <typename Func>
 void runWithTime(Func &&f, double *timeUsed)
