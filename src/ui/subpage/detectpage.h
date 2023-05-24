@@ -6,6 +6,7 @@
 
 #include "alg/detect/yolov5s.h"
 #include "alg/detect/yolact.h"
+#include "alg/detect/yolov8npose.h"
 
 #include <QWidget>
 
@@ -36,12 +37,14 @@ private:
 
     QImage drawOnYolov5s(const QImage &srcImage, const QList<Yolov5s::DetectResult> &result);
     QImage drawOnYolact(const QImage &srcImage, const QList<Yolact::DetectResult> &result);
+    QImage drawOnYolov8nPose(const QImage &srcImage, const QList<Yolov8nPose::DetectResult> &result);
 
     ImageView *srcView;
     ImageView *dstView;
     QTextEdit *msgBox;
     Yolov5s *yolov5s;
     Yolact *yolact;
+    Yolov8nPose *yolov8nPose;
     CameraControl *camera;
     QTimer *cameraFlushTimer;
     QLabel *fpsLabel;

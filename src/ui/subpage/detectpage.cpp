@@ -27,6 +27,7 @@ DetectPage::DetectPage(QWidget *parent)
     , msgBox(new QTextEdit)
     , yolov5s(new Yolov5s)
     , yolact(new Yolact)
+    , yolov8nPose(new Yolov8nPose)
     , camera(new CameraControl)
     , cameraFlushTimer(new QTimer)
 {
@@ -183,7 +184,7 @@ void DetectPage::openImage(const QImage &image, bool useFps)
     auto srcImage = image;
     srcView->setImage(srcImage);
 
-#if 0 //yolo目标检测
+#if 0 //yolov5目标检测
     //1.执行计算
     yolov5s->setImage(srcImage);
 
@@ -196,7 +197,7 @@ void DetectPage::openImage(const QImage &image, bool useFps)
 
     //2.绘制结果
     dstView->setImage(drawOnYolov5s(srcImage, result));
-#else //yolact实例分割
+#elif 0 //yolact实例分割
     //1.执行计算
     yolact->setImage(srcImage);
     double timeUsed = 0;
@@ -208,6 +209,18 @@ void DetectPage::openImage(const QImage &image, bool useFps)
 
     //2.绘制结果
     dstView->setImage(drawOnYolact(srcImage, result));
+#else //yolov8姿态检测
+    //1.执行计算
+    yolov8nPose->setImage(srcImage);
+    double timeUsed = 0;
+    runWithTime([this](){
+        yolov8nPose->analyze();
+    }, &timeUsed);
+
+    auto result = yolov8nPose->result();
+
+    //2.绘制结果
+    dstView->setImage(drawOnYolov8nPose(srcImage, result));
 #endif
 
     if(!useFps)
@@ -276,4 +289,41 @@ QImage DetectPage::drawOnYolact(const QImage &srcImage, const QList<Yolact::Dete
     }
 
     return dstImage;
+}
+
+QImage DetectPage::drawOnYolov8nPose(const QImage &srcImage, const QList<Yolov8nPose::DetectResult> &result)
+{
+    QImage imageOut(srcImage);
+    QPainter painter(&imageOut);
+    const auto &kpsColors = Yolov8nPose::kpsColors();
+    const auto &limbColors = Yolov8nPose::limbColors();
+    for(const auto &eachResult : result)
+    {
+        painter.setPen(QPen(Qt::red, 2));
+        painter.drawRect(eachResult.bbox);
+
+        painter.setPen(QPen(Qt::blue, 5));
+        painter.drawText(eachResult.bbox.x() + 5, eachResult.bbox.y() + 14,
+                         QString("person %1%").arg(QString::number(eachResult.score * 100, 'f', 2)));
+
+        auto skeleton = yolov8nPose->skeleton();
+        auto kps = eachResult.kps;
+        for(int i = 0;i != skeleton.size();++i)
+        {
+            if(i < 17 && kps[i].score > 0)
+            {
+                painter.setPen(QPen(kpsColors[i], 5));
+                painter.drawPoint(kps[i].point);
+            }
+            int xi = skeleton[i].first;
+            int yi = skeleton[i].second;
+            if(kps[xi - 1].score > 0 && kps[yi - 1].score > 0)
+            {
+                painter.setPen(QPen(limbColors[i], 2));
+                painter.drawLine(kps[xi - 1].point, kps[yi - 1].point);
+            }
+        }
+    }
+    painter.end();
+    return imageOut;
 }

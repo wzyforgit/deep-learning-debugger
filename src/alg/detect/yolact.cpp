@@ -127,11 +127,11 @@ void Yolact::init()
     //1.加载模型
     net = new ncnn::Net;
     net->opt.use_vulkan_compute = true;
-    net->load_param("/home/fuko/桌面/AI/Detect/yolact.param");
-    net->load_model("/home/fuko/桌面/AI/Detect/yolact.bin");
+    net->load_param("/home/fuko/桌面/AI/Detect/yolact_ncnn/yolact.param");
+    net->load_model("/home/fuko/桌面/AI/Detect/yolact_ncnn/yolact.bin");
 
     //2.加载字典
-    QFile file("/home/fuko/桌面/AI/Detect/yolact_dict.txt");
+    QFile file("/home/fuko/桌面/AI/Detect/yolact_ncnn/yolact_dict.txt");
     file.open(QIODevice::ReadOnly);
 
     while(1) {
