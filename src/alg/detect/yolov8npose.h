@@ -41,6 +41,4 @@ private:
     ncnn::Net *net = nullptr;
     QImage imageCache;
     QList<DetectResult> lastResult;
-    float lastScale;
-    float lastDw;
 };

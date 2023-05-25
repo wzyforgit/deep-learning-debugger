@@ -483,8 +483,6 @@ void Yolov8nPose::analyze()
         }
     }
     lastResult = std::move(results);
-    lastScale = scale;
-    lastDw = dw;
 }
 
 QList<Yolov8nPose::DetectResult> Yolov8nPose::result() const
