@@ -73,8 +73,6 @@ float ArcFace::compare(const QVector<float> &lhs, const QVector<float> &rhs)
         modA += lhs[i] * lhs[i];
         modB += rhs[i] * rhs[i];
     }
-    modA = std::sqrt(modA);
-    modB = std::sqrt(modB);
 
-    return (sumAB / (modA * modB)) * 0.5 + 0.5;
+    return (sumAB / (std::sqrt(modA * modB))) * 0.5 + 0.5;
 }
