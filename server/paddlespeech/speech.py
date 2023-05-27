@@ -12,10 +12,12 @@ from paddlespeech.cli.st.infer import STExecutor     #语音翻译
 import time
 
 class SpeechExecutor(object):
-    def __init__(self, dirPath, token):
+    def __init__(self, dirPath):
         if not dirPath.endswith('/'):
             dirPath = dirPath + '/'
         self.dirPath = dirPath
+
+    def setToken(self, token):
         self.token = token
 
     def fileFullName(self, fileNameSuffix):
@@ -60,7 +62,7 @@ class SpeechExecutor(object):
         filePath = self.fileFullName(fileNameSuffix)
         print('vector decode file: ' + filePath)
         result = self.vectorEx(audio_file = filePath)
-        return result
+        return result.tolist()
 
     def text(self, text):
         if not hasattr(self, 'textEx'):
@@ -79,7 +81,10 @@ class SpeechExecutor(object):
         filePath = self.fileFullName(fileNameSuffix)
         print('st decode file: ' + filePath)
         result = self.stEx(audio_file = filePath, src_lang = src, tgt_lang = tgt)
-        return result
+        stResultStr = ''
+        for stRet in result:
+            stResultStr = stRet + stResultStr + '\n'
+        return stResultStr
 
 #单模块测试用
 def runTest(ex, fileToken):
@@ -103,7 +108,7 @@ def runTest(ex, fileToken):
 
     #语音翻译测试
     stResult = ex.st('en', 'zh', fileToken)
-    print('st result: ' + str(stResult))
+    print('st result: ' + stResult)
 
     print('time usage: ' + str(time.time() - start))
 
@@ -117,8 +122,8 @@ def runTTS(ex):
     print('time usage: ' + str(time.time() - start))
 
 if __name__ == '__main__':
-    ex = SpeechExecutor('/home', '2333')
-    fileToken = '123'
+    ex = SpeechExecutor('/home')
+    ex.setToken('2333')
 
     runTest(ex, '123')
     runTest(ex, '456')
