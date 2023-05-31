@@ -22,6 +22,9 @@ extern QVector<qreal> sampleDataFusion(const QByteArray &data, const QAudioForma
 //提供绘制所需的调色盘
 extern const QList<QColor>& drawPalette();
 
+//在指定位置创建符合PaddleSpeech要求的.wav文件
+bool createPaddleSpeechWaveFile(const QString &fileName, const QAudioFormat &format);
+
 //测算函数的执行时间
 template <typename Func>
 void runWithTime(Func &&f, double *timeUsed)
@@ -35,6 +38,11 @@ void runWithTime(Func &&f, double *timeUsed)
 template <typename T>
 QVector<T> changeSampleRate(const QVector<T> &src, int fromRate, int toRate)
 {
+    if(fromRate == toRate)
+    {
+        return src;
+    }
+
     //1.计算最终数据的数量
     qreal ratio = toRate / static_cast<qreal>(fromRate);
     int targetSize = static_cast<int>(src.size() * ratio);
@@ -52,6 +60,10 @@ QVector<T> changeSampleRate(const QVector<T> &src, int fromRate, int toRate)
         int preSrcPos = static_cast<int>(srcPos);
         //后向位置
         int afterSrcPos = preSrcPos + 1;
+        if(afterSrcPos >= src.size() || preSrcPos >= src.size())
+        {
+            break;
+        }
         //点位的比率
         qreal posRatio = srcPos - preSrcPos;
         //点位的值

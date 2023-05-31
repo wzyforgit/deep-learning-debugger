@@ -5,6 +5,8 @@
 #include "utils.h"
 
 #include <sys/time.h>
+#include <QFile>
+#include <QtDebug>
 
 //摘抄自：https://github.com/Tencent/ncnn/blob/master/src/benchmark.cpp 下的 double get_current_time() 函数
 double getCurrentTime()
@@ -187,6 +189,66 @@ QVector<qreal> sampleDataFusion(const QByteArray &data, const QAudioFormat &form
     case 32:
         return sampleDataFusion_32bit(data, format);
     }
+}
+
+bool createPaddleSpeechWaveFile(const QString &fileName, const QAudioFormat &format)
+{
+    //PaddleSpeech要求数据的采样率必须是16k，wav文件要求数据必须是小端
+    //此处图省事，直接转到float，再一次转到16k的采样率
+
+    QFile file(fileName);
+    if(!file.open(QIODevice::ReadOnly))
+    {
+        qWarning() << "file open failed";
+        return false;
+    }
+    auto data = file.readAll();
+    file.close();
+
+    //1.准备数据
+    auto fusedData = sampleDataFusion(data, format);
+    auto stdSampleRateData = changeSampleRate(fusedData, format.sampleRate(), 16000);
+
+    QVector<qint16> stdSaveData;
+    std::transform(stdSampleRateData.begin(), stdSampleRateData.end(), std::back_inserter(stdSaveData), [](qreal data){
+        return static_cast<qint16>(data * 32768);
+    });
+
+    QByteArray dstData(stdSaveData.size() * sizeof(qint16), '\0');
+    memcpy(dstData.data(), stdSaveData.data(), dstData.size());
+
+    //2.写入文件头
+    if(!file.open(QIODevice::WriteOnly))
+    {
+        qWarning() << "file open failed";
+        return false;
+    }
+
+    unsigned int intBuffer;
+
+    //2.1 写入RIFF
+    file.write("\x52\x49\x46\x46", 4); //RIFF
+    intBuffer = 36 + dstData.size();
+    file.write(reinterpret_cast<char*>(&intBuffer), 4); //file size - 8
+    file.write("\x57\x41\x56\x45", 4); //WAVE
+
+    //2.2 写入format
+    file.write("\x66\x6D\x74\x20", 4); //'fmt '
+    file.write("\x10\x00\x00\x00", 4); //16
+    file.write("\x01\x00", 2); //Audio Format 01:pcm 03:ieee float
+    file.write("\x01\x00", 2); //Num Channels
+    file.write("\x80\x3E\x00\x00", 4); //Sample rate
+    file.write("\x00\x7D\x00\x00", 4); //SampleRate * NumChannels * BitsPerSample / 8
+    file.write("\x02\x00", 2); //NumChannels * BitsPerSample / 8
+    file.write("\x10\x00", 2); //8:8bit, 16:16bit, 32:32bit
+
+    //2.3 写入data
+    file.write("\x64\x61\x74\x61", 4); //data
+    intBuffer = dstData.size();
+    file.write(reinterpret_cast<char*>(&intBuffer), 4); //dstData.size()
+    file.write(dstData);
+
+    return file.waitForBytesWritten(-1);
 }
 
 const QList<QColor>& drawPalette()
