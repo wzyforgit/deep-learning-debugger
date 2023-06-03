@@ -13,6 +13,7 @@ class QPushButton;
 class QFile;
 class AudioWaveView;
 class AudioControl;
+class PaddleSpeechClient;
 
 class AudioPage : public QWidget
 {
@@ -39,6 +40,9 @@ private:
     void switchAudioSave();
     void switchAudioFileOpen();
 
+    void checkAndStartCache();
+    void analyzeAudio(const QByteArray &data);
+
     //录音用
     QComboBox *deviceChooseBox;
     QComboBox *codecChooseBox;
@@ -64,10 +68,13 @@ private:
     QPushButton *openFileButton;
 
     //公共设施
+    QLineEdit *cacheDirEdit;
     QTextEdit *msgBox;
     AudioWaveView *waveView;
     AudioControl *audio;
+    PaddleSpeechClient *paddleSpeechClient;
 
     QFile *saveFile;
+    QFile *cacheFile;
     bool inSave = false;
 };

@@ -7,6 +7,9 @@ from parse import JsonParse
 import sys
 import socketserver
 
+#这个玩意儿初始化需要5秒以上，因此得自动预激
+PARSER = JsonParse('/test/tmp')
+
 class ServerHandle(socketserver.BaseRequestHandler):
     def fullDataPack(self, data):
         if self.remainingDataLength == 0 and len(self.cachedData) == 0: #缓存为空且剩余数据量为0
@@ -40,20 +43,24 @@ class ServerHandle(socketserver.BaseRequestHandler):
     def handle(self):
         self.remainingDataLength = 0
         self.cachedData = b''
-        self.parser = JsonParse('/test/tmp')
+        self.parser = PARSER
         conn = self.request
         print('connect incomming: %s' % (self.client_address, ))
         while True:
             data = conn.recv(4096)
-            if data == None:
+            if len(data) == 0:
                 print('connect disconnect: %s' % (self.client_address, ))
                 break
             data = self.fullDataPack(data)
             if data != None:
+                print('recv data : ' + data.decode('utf-8'))
+
                 ret = self.parser.parseJsonFromClient(data.decode('utf-8'))
                 retBin = ret.encode('utf-8')
                 lenBin = len(retBin).to_bytes(2, byteorder = 'big', signed = False)
                 conn.sendall(lenBin + retBin)
+
+                print('send data : ' + ret)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:

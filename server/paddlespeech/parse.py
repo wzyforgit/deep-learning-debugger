@@ -12,6 +12,7 @@ class JsonParse(object):
     def __init__(self, fileSaveDir):
         self.isAlreadyLoggedIn = False
         self.fileSaveDir = fileSaveDir
+        self.ex = SpeechExecutor(self.fileSaveDir)
 
     def createErrorJson(self, status, reason):
         retDict = { 'status' : status, 'reason' : reason }

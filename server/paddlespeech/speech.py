@@ -17,6 +17,10 @@ class SpeechExecutor(object):
             dirPath = dirPath + '/'
         self.dirPath = dirPath
 
+        #这个玩意儿初始化需要5秒以上，因此得自动预激（在目录下放置一个可用的start.wav音频文件）
+        self.asrEx = ASRExecutor()
+        self.asrEx(audio_file = 'start.wav', model = 'conformer_talcs', lang='zh_en', codeswitch = True)
+
     def setToken(self, token):
         self.token = token
 

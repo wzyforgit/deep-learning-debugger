@@ -160,10 +160,6 @@ QVector<QPointF> AudioWaveView::generateSpecPoints(int pointCount, const QVector
 
 void AudioWaveView::setData(const QByteArray &data)
 {
-    //TODO：接入语音识别算法sherpa-ncnn
-    //TODO：实现识别结果实时显示
-    //Priority：语音识别算法->识别结果显示
-
     //1.波形图
 
     //1.1.归一化数据至[-1, 1]

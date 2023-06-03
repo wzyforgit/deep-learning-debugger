@@ -5,6 +5,7 @@
 #include "audiopage.h"
 #include "ui/subwidget/audiowaveview.h"
 #include "utils/audiocontrol.h"
+#include "alg/audio/paddlespeechclient.h"
 
 #include <QComboBox>
 #include <QTextEdit>
@@ -30,11 +31,23 @@
 AudioPage::AudioPage(QWidget *parent)
     : QWidget(parent)
     , audio(new AudioControl(this))
+    , paddleSpeechClient(new PaddleSpeechClient(this))
     , saveFile(new QFile)
+    , cacheFile(new QFile)
 {
     initUI();
     updateDeviceChooseBox();
     updateDeviceParamBox(0);
+
+    //设置语音识别
+    connect(audio, &AudioControl::dataReady, this, &AudioPage::analyzeAudio);
+    paddleSpeechClient->setDataSendingInterval(5000);
+    connect(paddleSpeechClient, &PaddleSpeechClient::recvError, [this](const QString &code, const QString &reason){
+        addMessage(tr("PaddleSpeech Server 错误：代码 %1，原因 %2").arg(code).arg(reason));
+    });
+    connect(paddleSpeechClient, &PaddleSpeechClient::analyzeResultReady, [this](const QString &data){
+        addMessage(tr("PaddleSpeech Server 数据：%1").arg(data));
+    });
 }
 
 QWidget* AudioPage::initAudioUI()
@@ -166,7 +179,6 @@ QWidget* AudioPage::initFileUI()
     auto fileChooseLayer = new QHBoxLayout;
     fileChooseLayer->addWidget(fileChooseEdit);
     fileChooseLayer->addWidget(fileChooseButton);
-    //fileChooseLayer->addWidget(openFileButton);
 
     auto audioLayer = new QVBoxLayout;
     audioLayer->addLayout(audioInputLayer);
@@ -182,6 +194,22 @@ void AudioPage::initUI()
 {
     auto panelGroup = new QGroupBox(tr("操作面板"));
 
+    auto cacheDirLabel = new QLabel(tr("音频分析缓存路径"));
+    auto cacheDirButton = new QPushButton(tr("..."));
+    cacheDirEdit = new QLineEdit;
+    connect(cacheDirButton, &QPushButton::clicked, [this](){
+        auto dirPath = QFileDialog::getExistingDirectory();
+        if(!dirPath.isEmpty())
+        {
+            cacheDirEdit->setText(dirPath);
+        }
+    });
+
+    auto cacheDirLayer = new QHBoxLayout;
+    cacheDirLayer->addWidget(cacheDirLabel);
+    cacheDirLayer->addWidget(cacheDirEdit);
+    cacheDirLayer->addWidget(cacheDirButton);
+
     msgBox = new QTextEdit;
     msgBox->setReadOnly(true);
 
@@ -195,6 +223,7 @@ void AudioPage::initUI()
     connect(viewChangeTab, &QTabBar::currentChanged, viewStack, &QStackedWidget::setCurrentIndex);
 
     auto panelLayer = new QVBoxLayout;
+    panelLayer->addLayout(cacheDirLayer);
     panelLayer->addWidget(viewChangeTab);
     panelLayer->addWidget(viewStack, 0, Qt::AlignTop);
     panelLayer->addWidget(msgBox);
@@ -275,6 +304,7 @@ void AudioPage::switchAudioDevice()
                 switchAudioSave();
             }
             updateUIWhenAudioSwitch(false);
+            paddleSpeechClient->startAnalyze(false);
         }
         else
         {
@@ -296,6 +326,7 @@ void AudioPage::switchAudioDevice()
             openAudioButton->setText(tr("关闭录音设备"));
             waveView->setAudioParam(audio->format());
             updateUIWhenAudioSwitch(true);
+            checkAndStartCache();
         }
         else
         {
@@ -370,6 +401,7 @@ void AudioPage::switchAudioFileOpen()
         {
             addMessage(tr("播放设备已关闭"));
             openFileButton->setText(tr("开始播放"));
+            paddleSpeechClient->startAnalyze(false);
         }
         else
         {
@@ -405,10 +437,30 @@ void AudioPage::switchAudioFileOpen()
             waveView->setAudioParam(format);
             addMessage(tr("播放设备已打开"));
             openFileButton->setText(tr("停止播放"));
+            checkAndStartCache();
         }
         else
         {
             addMessage(tr("播放设备打开失败"));
         }
     }
+}
+
+void AudioPage::checkAndStartCache()
+{
+    QFileInfo dirInfo(cacheDirEdit->text());
+    if(!dirInfo.isDir())
+    {
+        addMessage(tr("无效的缓存目录，将不启动语音识别功能"));
+        return;
+    }
+    paddleSpeechClient->setAudioFormat(audio->format());
+    paddleSpeechClient->setCacheDir(cacheDirEdit->text());
+    paddleSpeechClient->startAnalyze(true);
+    paddleSpeechClient->connectToServer("172.17.0.2", 8080);
+}
+
+void AudioPage::analyzeAudio(const QByteArray &data)
+{
+    paddleSpeechClient->setData(data);
 }
